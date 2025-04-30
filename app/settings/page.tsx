@@ -10,14 +10,14 @@ export default async function SettingsPage() {
   const supabase = createServerComponentClient({ cookies: () => cookieStore })
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect("/signin")
   }
 
-  const userId = session.user.id
+  const userId = user.id
 
   try {
     const settings = await getSettings(userId)
