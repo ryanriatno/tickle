@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Header settings={settings} />
-        <main className="flex-1 container py-6 flex justify-center">
+        <main className="flex-1 container py-6 flex justify-center mx-auto">
           <div className="w-full max-w-4xl">
             <DashboardContent tasks={tasks} settings={settings} />
           </div>

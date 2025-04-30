@@ -11,7 +11,7 @@ interface HeaderProps {
 export function Header({ settings }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
+      <div className="container flex h-14 items-center w-full max-w-4xl mx-auto">
         <Link href="/dashboard" className="flex items-center space-x-2 font-bold">
           <Clock className="h-6 w-6" />
           <span>Tickle</span>

@@ -19,9 +19,9 @@ export function Timer({ settings, currentTask }: TimerProps) {
   const [requestedNotificationPermission, setRequestedNotificationPermission] = useState(false)
 
   const pomodoroSettings = {
-    pomodoroDuration: settings.pomodoro_duration,
-    shortBreakDuration: settings.short_break_duration,
-    longBreakDuration: settings.long_break_duration,
+    pomodoroDuration: settings.pomodoro_duration * 60,
+    shortBreakDuration: settings.short_break_duration * 60,
+    longBreakDuration: settings.long_break_duration * 60,
     longBreakInterval: settings.long_break_interval,
     soundEnabled: settings.sound_enabled,
     notificationsEnabled: settings.notifications_enabled,

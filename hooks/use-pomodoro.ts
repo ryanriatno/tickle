@@ -15,11 +15,12 @@ interface PomodoroSettings {
 
 export function usePomodoro(settings: PomodoroSettings) {
   const [mode, setMode] = useState<TimerMode>("pomodoro")
-  const [timeLeft, setTimeLeft] = useState(settings.pomodoroDuration * 60)
+  const [timeLeft, setTimeLeft] = useState(settings.pomodoroDuration)
   const [isActive, setIsActive] = useState(false)
   const [completedPomodoros, setCompletedPomodoros] = useState(0)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<number | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const startTimeRef = useRef<number | null>(null)
 
   // Initialize audio
   useEffect(() => {
@@ -29,50 +30,16 @@ export function usePomodoro(settings: PomodoroSettings) {
 
     return () => {
       if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+        cancelAnimationFrame(intervalRef.current)
       }
     }
   }, [])
-
-  // Update timer when settings change
-  useEffect(() => {
-    if (mode === "pomodoro") {
-      setTimeLeft(settings.pomodoroDuration * 60)
-    } else if (mode === "shortBreak") {
-      setTimeLeft(settings.shortBreakDuration * 60)
-    } else {
-      setTimeLeft(settings.longBreakDuration * 60)
-    }
-  }, [settings, mode])
-
-  // Timer logic
-  useEffect(() => {
-    if (isActive) {
-      intervalRef.current = setInterval(() => {
-        setTimeLeft((prevTime) => {
-          if (prevTime <= 1) {
-            handleTimerComplete()
-            return 0
-          }
-          return prevTime - 1
-        })
-      }, 1000)
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
-    }
-  }, [isActive])
 
   const handleTimerComplete = useCallback(() => {
     setIsActive(false)
 
     if (intervalRef.current) {
-      clearInterval(intervalRef.current)
+      cancelAnimationFrame(intervalRef.current)
     }
 
     // Play sound if enabled
@@ -100,16 +67,72 @@ export function usePomodoro(settings: PomodoroSettings) {
       // Determine if it's time for a long break
       if (newCompletedCount % settings.longBreakInterval === 0) {
         setMode("longBreak")
-        setTimeLeft(settings.longBreakDuration * 60)
+        setTimeLeft(settings.longBreakDuration)
       } else {
         setMode("shortBreak")
-        setTimeLeft(settings.shortBreakDuration * 60)
+        setTimeLeft(settings.shortBreakDuration)
       }
     } else {
       setMode("pomodoro")
-      setTimeLeft(settings.pomodoroDuration * 60)
+      setTimeLeft(settings.pomodoroDuration)
     }
   }, [mode, completedPomodoros, settings])
+
+  // Timer logic
+  useEffect(() => {
+    if (!isActive) {
+      if (intervalRef.current) {
+        cancelAnimationFrame(intervalRef.current)
+      }
+      startTimeRef.current = null
+      return
+    }
+
+    // Set initial time when starting
+    if (!startTimeRef.current) {
+      startTimeRef.current = Date.now()
+    }
+
+    let lastUpdate = Date.now()
+    const updateTimer = () => {
+      if (!isActive || !startTimeRef.current) return
+
+      const now = Date.now()
+      const elapsed = Math.floor((now - startTimeRef.current) / 1000)
+      const remaining = Math.max(0, settings.pomodoroDuration - elapsed)
+      
+      if (remaining !== timeLeft) {
+        setTimeLeft(remaining)
+      }
+      
+      if (remaining === 0) {
+        handleTimerComplete()
+      } else {
+        intervalRef.current = requestAnimationFrame(updateTimer)
+      }
+    }
+
+    intervalRef.current = requestAnimationFrame(updateTimer)
+
+    return () => {
+      if (intervalRef.current) {
+        cancelAnimationFrame(intervalRef.current)
+      }
+    }
+  }, [isActive, settings.pomodoroDuration, handleTimerComplete])
+
+  // Update timer when settings change
+  useEffect(() => {
+    if (!isActive) {
+      if (mode === "pomodoro") {
+        setTimeLeft(settings.pomodoroDuration)
+      } else if (mode === "shortBreak") {
+        setTimeLeft(settings.shortBreakDuration)
+      } else {
+        setTimeLeft(settings.longBreakDuration)
+      }
+    }
+  }, [settings, mode, isActive])
 
   const startTimer = useCallback(() => {
     setIsActive(true)
@@ -121,12 +144,16 @@ export function usePomodoro(settings: PomodoroSettings) {
 
   const resetTimer = useCallback(() => {
     setIsActive(false)
+    if (intervalRef.current) {
+      cancelAnimationFrame(intervalRef.current)
+    }
+    startTimeRef.current = null
     if (mode === "pomodoro") {
-      setTimeLeft(settings.pomodoroDuration * 60)
+      setTimeLeft(settings.pomodoroDuration)
     } else if (mode === "shortBreak") {
-      setTimeLeft(settings.shortBreakDuration * 60)
+      setTimeLeft(settings.shortBreakDuration)
     } else {
-      setTimeLeft(settings.longBreakDuration * 60)
+      setTimeLeft(settings.longBreakDuration)
     }
   }, [mode, settings])
 
