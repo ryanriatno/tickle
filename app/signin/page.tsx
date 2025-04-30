@@ -1,5 +1,4 @@
 import { SignInForm } from "@/components/auth/sign-in-form"
-import { CookieDebug } from "@/components/auth/cookie-debug"
 
 export default function SignInPage() {
   return (
@@ -10,7 +9,6 @@ export default function SignInPage() {
           <p className="text-muted-foreground">Pomodoro Timer with Task Management</p>
         </div>
         <SignInForm />
-        <CookieDebug />
       </div>
     </div>
   )
