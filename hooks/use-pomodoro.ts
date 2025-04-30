@@ -18,28 +18,48 @@ export function usePomodoro(settings: PomodoroSettings) {
   const [timeLeft, setTimeLeft] = useState(settings.pomodoroDuration)
   const [isActive, setIsActive] = useState(false)
   const [completedPomodoros, setCompletedPomodoros] = useState(0)
-  const intervalRef = useRef<number | null>(null)
+  const [isClient, setIsClient] = useState(false)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const startTimeRef = useRef<number | null>(null)
 
-  // Initialize audio
+  // Handle client-side initialization
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      audioRef.current = new Audio("/sounds/bell.mp3")
-    }
+    setIsClient(true)
+    const savedMode = localStorage.getItem("pomodoroMode")
+    const savedTime = localStorage.getItem("pomodoroTimeLeft")
+    const savedIsActive = localStorage.getItem("pomodoroIsActive")
+    const savedCount = localStorage.getItem("completedPomodoros")
+
+    if (savedMode) setMode(savedMode as TimerMode)
+    if (savedTime) setTimeLeft(parseInt(savedTime))
+    if (savedIsActive) setIsActive(savedIsActive === "true")
+    if (savedCount) setCompletedPomodoros(parseInt(savedCount))
+
+    audioRef.current = new Audio("/sounds/bell.mp3")
 
     return () => {
       if (intervalRef.current) {
-        cancelAnimationFrame(intervalRef.current)
+        clearInterval(intervalRef.current)
       }
     }
   }, [])
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem("pomodoroMode", mode)
+      localStorage.setItem("pomodoroTimeLeft", timeLeft.toString())
+      localStorage.setItem("pomodoroIsActive", isActive.toString())
+      localStorage.setItem("completedPomodoros", completedPomodoros.toString())
+    }
+  }, [mode, timeLeft, isActive, completedPomodoros, isClient])
 
   const handleTimerComplete = useCallback(() => {
     setIsActive(false)
 
     if (intervalRef.current) {
-      cancelAnimationFrame(intervalRef.current)
+      clearInterval(intervalRef.current)
     }
 
     // Play sound if enabled
@@ -82,9 +102,8 @@ export function usePomodoro(settings: PomodoroSettings) {
   useEffect(() => {
     if (!isActive) {
       if (intervalRef.current) {
-        cancelAnimationFrame(intervalRef.current)
+        clearInterval(intervalRef.current)
       }
-      startTimeRef.current = null
       return
     }
 
@@ -93,13 +112,17 @@ export function usePomodoro(settings: PomodoroSettings) {
       startTimeRef.current = Date.now()
     }
 
-    let lastUpdate = Date.now()
     const updateTimer = () => {
       if (!isActive || !startTimeRef.current) return
 
       const now = Date.now()
       const elapsed = Math.floor((now - startTimeRef.current) / 1000)
-      const remaining = Math.max(0, settings.pomodoroDuration - elapsed)
+      const initialDuration = mode === "pomodoro" 
+        ? settings.pomodoroDuration 
+        : mode === "shortBreak" 
+          ? settings.shortBreakDuration 
+          : settings.longBreakDuration
+      const remaining = Math.max(0, initialDuration - elapsed)
       
       if (remaining !== timeLeft) {
         setTimeLeft(remaining)
@@ -107,19 +130,19 @@ export function usePomodoro(settings: PomodoroSettings) {
       
       if (remaining === 0) {
         handleTimerComplete()
-      } else {
-        intervalRef.current = requestAnimationFrame(updateTimer)
       }
     }
 
-    intervalRef.current = requestAnimationFrame(updateTimer)
+    // Update every second
+    intervalRef.current = setInterval(updateTimer, 1000)
+    updateTimer() // Run immediately
 
     return () => {
       if (intervalRef.current) {
-        cancelAnimationFrame(intervalRef.current)
+        clearInterval(intervalRef.current)
       }
     }
-  }, [isActive, settings.pomodoroDuration, handleTimerComplete])
+  }, [isActive, mode, settings, handleTimerComplete])
 
   // Update timer when settings change
   useEffect(() => {
@@ -136,16 +159,20 @@ export function usePomodoro(settings: PomodoroSettings) {
 
   const startTimer = useCallback(() => {
     setIsActive(true)
+    startTimeRef.current = Date.now()
   }, [])
 
   const pauseTimer = useCallback(() => {
     setIsActive(false)
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+    }
   }, [])
 
   const resetTimer = useCallback(() => {
     setIsActive(false)
     if (intervalRef.current) {
-      cancelAnimationFrame(intervalRef.current)
+      clearInterval(intervalRef.current)
     }
     startTimeRef.current = null
     if (mode === "pomodoro") {
