@@ -19,6 +19,7 @@ export function SignInForm() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  // Update the handleSubmit function to include more detailed error handling and logging
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -26,21 +27,29 @@ export function SignInForm() {
 
     try {
       const supabase = createClientSupabaseClient()
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
+        console.error("Sign in error:", error)
         setError(error.message)
         return
       }
 
-      router.push("/dashboard")
-      router.refresh()
+      if (!data.session) {
+        console.error("No session returned after sign in")
+        setError("Authentication failed. Please try again.")
+        return
+      }
+
+      console.log("Sign in successful, redirecting...")
+      // Force a hard navigation to ensure the page is fully reloaded
+      window.location.href = "/dashboard"
     } catch (err) {
+      console.error("Unexpected error during sign in:", err)
       setError("An unexpected error occurred")
-      console.error(err)
     } finally {
       setIsLoading(false)
     }

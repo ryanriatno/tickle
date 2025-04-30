@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation"
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { getTasks } from "@/app/actions/tasks"
 import { getSettings } from "@/app/actions/settings"
@@ -12,7 +13,7 @@ export default async function DashboardPage() {
   } = await supabase.auth.getSession()
 
   if (!session) {
-    return null // Middleware will handle redirect
+    redirect("/signin")
   }
 
   const userId = session.user.id
