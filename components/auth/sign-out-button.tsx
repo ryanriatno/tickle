@@ -1,31 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { signOut } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
-import { signOut } from "@/lib/auth-utils"
+import { useTransition } from "react"
 
 interface SignOutButtonProps {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
 }
 
 export function SignOutButton({ variant = "ghost" }: SignOutButtonProps) {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
-  const handleSignOut = async () => {
-    setIsLoading(true)
-    try {
+  const handleSignOut = () => {
+    startTransition(async () => {
       await signOut()
-    } catch (error) {
-      console.error("Error signing out:", error)
-    } finally {
-      setIsLoading(false)
-    }
+    })
   }
 
   return (
-    <Button variant={variant} onClick={handleSignOut} disabled={isLoading}>
-      {isLoading ? (
+    <Button variant={variant} onClick={handleSignOut} disabled={isPending}>
+      {isPending ? (
         "Signing out..."
       ) : (
         <>

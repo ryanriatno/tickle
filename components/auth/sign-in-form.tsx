@@ -1,57 +1,42 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { createClientSupabaseClient } from "@/lib/supabase/client"
+import { signIn } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
+import Link from "next/link"
+import { useFormStatus } from "react-dom"
+
+function SubmitButton() {
+  const { pending } = useFormStatus()
+
+  return (
+    <Button type="submit" className="w-full" disabled={pending}>
+      {pending ? "Signing in..." : "Sign In"}
+    </Button>
+  )
+}
 
 export function SignInForm() {
-  const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
 
-  // Update the handleSubmit function to include more detailed error handling and logging
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+  async function handleSubmit(formData: FormData) {
     setError(null)
+    setMessage(null)
 
     try {
-      const supabase = createClientSupabaseClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) {
-        console.error("Sign in error:", error)
-        setError(error.message)
-        return
+      const result = await signIn(formData)
+      if (result?.error) {
+        setError(result.error)
       }
-
-      if (!data.session) {
-        console.error("No session returned after sign in")
-        setError("Authentication failed. Please try again.")
-        return
-      }
-
-      console.log("Sign in successful, redirecting...")
-      // Force a hard navigation to ensure the page is fully reloaded
-      window.location.href = "/dashboard"
     } catch (err) {
-      console.error("Unexpected error during sign in:", err)
-      setError("An unexpected error occurred")
-    } finally {
-      setIsLoading(false)
+      console.error("Sign in error:", err)
+      setError("An unexpected error occurred. Please try again.")
     }
   }
 
@@ -62,43 +47,37 @@ export function SignInForm() {
         <CardDescription>Enter your email and password to access your account</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={handleSubmit} className="space-y-4">
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+
+          {message && (
+            <Alert>
+              <AlertDescription>{message}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <Input id="email" name="email" type="email" placeholder="you@example.com" required />
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <Input id="password" name="password" type="password" required />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Signing in..." : "Sign In"}
-          </Button>
+
+          <SubmitButton />
         </form>
       </CardContent>
       <CardFooter className="flex justify-center">
-        <Button variant="link" onClick={() => router.push("/signup")}>
+        <Link href="/signup" className="text-sm text-primary hover:underline">
           Don&apos;t have an account? Sign up
-        </Button>
+        </Link>
       </CardFooter>
     </Card>
   )
