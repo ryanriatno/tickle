@@ -1,54 +1,31 @@
-import { createServerClient } from "@supabase/ssr"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { getTasks } from "@/app/actions/tasks"
-import { getSettings } from "@/app/actions/settings"
 import { Header } from "@/components/header"
 import { AnalyticsContent } from "@/components/analytics/analytics-content"
-import type { Database } from "@/lib/types/database.types"
+import { createServerSupabaseClientWithAuth } from "@/lib/supabase/server"
 
 export default async function AnalyticsPage() {
-  const cookieStore = cookies()
-  const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          const cookie = cookieStore.get(name)
-          return cookie?.value
-        },
-        set(name: string, value: string, options: any) {
-          cookieStore.set(name, value, {
-            ...options,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-          })
-        },
-        remove(name: string, options: any) {
-          cookieStore.set(name, '', {
-            ...options,
-            maxAge: 0,
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-          })
-        },
-      },
-    }
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/signin")
-  }
-
-  const userId = user.id
-
   try {
-    const [tasks, settings] = await Promise.all([getTasks(userId), getSettings(userId)])
+    const { supabase, user } = await createServerSupabaseClientWithAuth()
+
+    const { data: tasks, error: tasksError } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+
+    if (tasksError) {
+      throw tasksError
+    }
+
+    const { data: settings, error: settingsError } = await supabase
+      .from("settings")
+      .select("*")
+      .eq("user_id", user.id)
+      .single()
+
+    if (settingsError) {
+      throw settingsError
+    }
 
     return (
       <div className="min-h-screen flex flex-col">
@@ -61,6 +38,10 @@ export default async function AnalyticsPage() {
       </div>
     )
   } catch (error) {
+    if (error instanceof Error && error.message === 'Not authenticated') {
+      redirect("/signin")
+    }
+    
     console.error("Error loading analytics data:", error)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
