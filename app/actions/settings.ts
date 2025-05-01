@@ -5,7 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server"
 import type { UpdateTables } from "@/lib/types/database.types"
 
 export async function getSettings(userId: string) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase.from("settings").select("*").eq("user_id", userId).single()
 
@@ -18,7 +18,7 @@ export async function getSettings(userId: string) {
 }
 
 export async function updateSettings(userId: string, updates: UpdateTables<"settings">) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase
     .from("settings")

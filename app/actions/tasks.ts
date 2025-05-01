@@ -5,7 +5,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server"
 import type { InsertTables, UpdateTables } from "@/lib/types/database.types"
 
 export async function getTasks(userId: string) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase
     .from("tasks")
@@ -22,7 +22,7 @@ export async function getTasks(userId: string) {
 }
 
 export async function createTask(task: InsertTables<"tasks">) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase.from("tasks").insert(task).select().single()
 
@@ -36,7 +36,7 @@ export async function createTask(task: InsertTables<"tasks">) {
 }
 
 export async function updateTask(id: string, updates: UpdateTables<"tasks">) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { data, error } = await supabase.from("tasks").update(updates).eq("id", id).select().single()
 
@@ -50,7 +50,7 @@ export async function updateTask(id: string, updates: UpdateTables<"tasks">) {
 }
 
 export async function deleteTask(id: string) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   const { error } = await supabase.from("tasks").delete().eq("id", id)
 
@@ -64,7 +64,7 @@ export async function deleteTask(id: string) {
 }
 
 export async function incrementCompletedPomodoros(id: string) {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
 
   // First get the current task
   const { data: task, error: fetchError } = await supabase

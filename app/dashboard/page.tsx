@@ -1,14 +1,41 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { getTasks } from "@/app/actions/tasks"
 import { getSettings } from "@/app/actions/settings"
 import { Header } from "@/components/header"
 import { DashboardContent } from "@/components/dashboard-content"
+import type { Database } from "@/lib/types/database.types"
 
 export default async function DashboardPage() {
-  const cookieStore = cookies()
-  const supabase = createServerComponentClient({ cookies: () => cookieStore })
+  const cookieStore = await cookies()
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        async get(name: string) {
+          const cookie = await cookieStore.get(name)
+          return cookie?.value
+        },
+        async set(name: string, value: string, options: any) {
+          await cookieStore.set(name, value, {
+            ...options,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+          })
+        },
+        async remove(name: string, options: any) {
+          await cookieStore.set(name, '', {
+            ...options,
+            maxAge: 0,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+          })
+        },
+      },
+    }
+  )
 
   const {
     data: { user },

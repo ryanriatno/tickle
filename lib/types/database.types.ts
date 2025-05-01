@@ -99,6 +99,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      timer_states: {
+        Row: {
+          id: string
+          user_id: string
+          mode: string
+          time_left: number
+          is_active: boolean
+          start_time: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          mode: string
+          time_left: number
+          is_active: boolean
+          start_time?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          mode?: string
+          time_left?: number
+          is_active?: boolean
+          start_time?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }
