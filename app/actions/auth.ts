@@ -46,7 +46,7 @@ export async function signIn(formData: FormData) {
     return { error: error.message }
   }
 
-  redirect("/dashboard")
+  return { success: true, redirect: "/dashboard" }
 }
 
 export async function signUp(formData: FormData) {
@@ -133,5 +133,5 @@ export async function signOut() {
     return { error: error.message }
   }
 
-  redirect("/signin")
+  return { success: true, redirect: "/signin" }
 }
